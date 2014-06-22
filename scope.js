@@ -16,6 +16,12 @@ var Scope = function(parent, semiparent){
 	this.declarations = new Hash();
 	this.avaliables = new Hash();
 	this.uses = new Hash();
+
+	if(this.parent && this.parent.macros){
+		this.macros = Object.create(parent.macros)
+	} else {
+		this.macros = new Hash()
+	}
 	
 	this.N = (++N);
 	this.locals = [];
@@ -28,8 +34,10 @@ Scope.prototype.use = function(name) {
 //	return new Reference(this, name)
 }
 Scope.prototype.declare = function(name, isParameter) {
+	if(typeof name !== 'string') debugger;
 	var decl = new Declaration(name, isParameter, this)
 	this.declarations.put(name, decl);
+	return decl;
 }
 Scope.prototype.resolve = function(){
 	if(this.resolved) return;
@@ -51,7 +59,7 @@ Scope.prototype.resolve = function(){
 	});
 	t.uses.rewriteOwn(function(id, ref){
 		if(!t.avaliables.has(id)){
-			t.declare(id);
+			t.avaliables.put(id, t.declare(id))
 		};
 		return t.avaliables.get(id);
 	});
