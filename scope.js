@@ -9,7 +9,7 @@ Declaration.prototype.toString = function(){
 	return this.name;
 }
 
-var N = 0;
+var _N = 0;
 var Scope = function(parent, semiparent){
 	this.parent = parent;
 	this.semiparent = semiparent;
@@ -22,11 +22,11 @@ var Scope = function(parent, semiparent){
 	} else {
 		this.macros = new Hash()
 	}
-	
-	this.N = (++N);
+
 	this.locals = [];
 	this.resolved = false;
 	this.temps = [];
+	this._N = (_N++);
 }
 Scope.prototype.use = function(name) {
 	this.uses.put(name, null);
@@ -40,20 +40,25 @@ Scope.prototype.declare = function(name, isParameter) {
 	return decl;
 }
 Scope.prototype.resolve = function(){
-	if(this.resolved) return;
+	if(this.resolved) return this.root;
 	var t = this;
+	var root = this;
 	if(t.parent) {
-		t.parent.resolve();
+		var proot = t.parent.resolve();
+		if(proot) root = proot;
 		t.parent.avaliables.forEachOwn(function(id, decl){
 			t.avaliables.put(id, decl)
 		});
 	};
 	if(t.semiparent) {
-		t.semiparent.resolve();
+		var sroot = t.semiparent.resolve();
+		if(root !== sroot) throw "Invalid scoping structure: Multiple roots found".
 		t.semiparent.avaliables.forEachOwn(function(id, decl){
 			t.avaliables.put(id, decl)
 		});
 	};
+	if(root === this) this.N = root.hangedScopes = 0;
+	else this.N = root.hangedScopes += 1;
 	t.declarations.forEachOwn(function(id, decl){
 		t.avaliables.put(id, decl)
 	});
@@ -67,6 +72,8 @@ Scope.prototype.resolve = function(){
 		t.locals.push(id);
 	});
 	t.resolved = true;
+	t.root = root;
+	return root;
 }
 Scope.prototype.castName = function(name){
 	return 's' + this.N + '_' + name;
@@ -74,7 +81,7 @@ Scope.prototype.castName = function(name){
 Scope.prototype.castTempName = function(name){
 	return '_s' + this.N + '_' + name;
 }
-Scope.prototype.inspect = function(){ return "[scope #" + this.N + "]" }
+Scope.prototype.inspect = function(){ return "[scope#" + this._N + "]" }
 Scope.prototype.newt = function(fn){
 	return ['.t', (this.temps[this.temps.length] = (fn || 't') + this.temps.length), this]
 }
