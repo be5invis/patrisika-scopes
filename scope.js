@@ -92,3 +92,7 @@ exports.resolveIdentifier = function(id, scope){
 	scope.resolve();
 	return scope.uses.get(id).belongs.castName(id);
 }
+exports.resolveTemp = function(id, scope){
+	scope.resolve();
+	return scope.castTempName(id);
+}
