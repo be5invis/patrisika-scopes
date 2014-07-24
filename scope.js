@@ -1,5 +1,5 @@
 var Hash = require('./hash').Hash;
-
+var escapeId = require('./castname').escapeId;
 var Declaration = function(name, isParameter, belongs){
 	this.name = name;
 	this.isParameter = isParameter;
@@ -76,10 +76,10 @@ Scope.prototype.resolve = function(){
 	return root;
 }
 Scope.prototype.castName = function(name){
-	return 's' + this.N + '_' + name;
+	return 's' + this.N + '_' + escapeId(name)
 }
 Scope.prototype.castTempName = function(name){
-	return '_s' + this.N + '_' + name;
+	return '_s' + this.N + '_' + escapeId(name)
 }
 Scope.prototype.inspect = function(){ return "[scope#" + this._N + "]" }
 Scope.prototype.newt = function(fn){
@@ -96,3 +96,4 @@ exports.resolveTemp = function(id, scope){
 	scope.resolve();
 	return scope.castTempName(id);
 }
+exports.escapeId = escapeId;
