@@ -17,7 +17,7 @@ exports.escapeId = function(){
 		if(a.length < 1) return s;
 		var buf = '';
 		a = a.sort(COMPARE_CODES);
-		var code = a[0];	
+		var code = a[0];
 		buf += encNum((code.j << 16) + code.ch);
 		for(var i = 1; i < a.length; i++){
 			if(a[i].ch === code.ch && a[i].j - code.j < 0x10000){
