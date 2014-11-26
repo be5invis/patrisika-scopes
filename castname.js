@@ -27,7 +27,7 @@ exports.escapeId = function(){
 			}
 			code = a[i];
 		};
-		return s + '_' + buf;
+		return s + '$' + buf;
 	};
 	return function(s){
 		var nonBasics = [];
@@ -35,7 +35,7 @@ exports.escapeId = function(){
 			nonBasics.push({ch: ch.charCodeAt(0), j: j + 1});
 			return '';
 		});
-		if(nonBasics.length) return 'xn_' + encodeNonBasics(s, nonBasics);
+		if(nonBasics.length) return 'xn$' + encodeNonBasics(s, nonBasics);
 		else return s;
 	}
 }();
