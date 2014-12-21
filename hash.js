@@ -53,6 +53,18 @@ var Hash = function() {};
 		},
 		enumerable: false
 	});
+	Object.defineProperty(Hash.prototype, 'mapOwn', {
+		value: function(f) {
+			var ans = new Hash();
+			for(var _key in this) {
+				if(OWNS(this, _key)) {
+					ans[_key] = f(_key.slice(MANGLELENGTH), this[_key]);
+				}
+			};
+			return ans;
+		},
+		enumerable: false
+	});
 })();
 
 exports.Hash = Hash;

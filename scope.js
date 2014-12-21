@@ -29,8 +29,8 @@ var Scope = function(parent, semiparent){
 	this._N = (_N++);
 }
 Scope.prototype.use = function(name) {
-	this.uses.put(name, null);
-	return ['.id', name, this];
+  	this.uses.put(name, null);
+  	return ['.id', name, this];
 //	return new Reference(this, name)
 }
 Scope.prototype.declare = function(name, isParameter) {
@@ -39,47 +39,62 @@ Scope.prototype.declare = function(name, isParameter) {
 	this.declarations.put(name, decl);
 	return decl;
 }
-Scope.prototype.resolve = function(){
-	if(this.resolved) return this.root;
+Scope.prototype.resolve = function(cache){
+	if(cache[this._N]) return cache[this._N];
+
 	var t = this;
-	var root = this;
+	var root = { hangedScopes : 0 };
+	var _root = root;
+
+	var avaliables = new Hash();
+	var postDeclarations = new Hash();
+
 	if(t.parent) {
-		var proot = t.parent.resolve();
+		var mParent = t.parent.resolve(cache);
+		var proot = mParent.root;
 		if(proot) root = proot;
-		t.parent.avaliables.forEachOwn(function(id, decl){
-			t.avaliables.put(id, decl)
+		mParent.avaliables.forEachOwn(function(id, decl){
+			avaliables.put(id, decl)
 		});
 	};
 	if(t.semiparent) {
-		var sroot = t.semiparent.resolve();
-		if(root !== sroot) throw "Invalid scoping structure: Multiple roots found".
-		t.semiparent.avaliables.forEachOwn(function(id, decl){
-			t.avaliables.put(id, decl)
+		var mSemiParent = t.semiparent.resolve(cache);
+		var sroot = mSemiParent.root;
+		mSemiParent.avaliables.forEachOwn(function(id, decl){
+			avaliables.put(id, decl)
 		});
 	};
-	if(root === this) this.N = root.hangedScopes = 0;
-	else this.N = root.hangedScopes += 1;
+	if(root === _root) var N = root.hangedScopes = 0; else var N = root.hangedScopes += 1;
+
 	t.declarations.forEachOwn(function(id, decl){
-		t.avaliables.put(id, decl)
+		avaliables.put(id, decl)
 	});
-	t.uses.rewriteOwn(function(id, ref){
-		if(!t.avaliables.has(id)){
-			t.avaliables.put(id, t.declare(id))
+
+	var uses = t.uses.mapOwn(function(id, ref){
+		if(!avaliables.has(id)){
+			var decl = new Declaration(id, false, t)
+			postDeclarations.put(id, decl);
+			avaliables.put(id, decl)
 		};
-		return t.avaliables.get(id);
+		return avaliables.get(id);
 	});
-	t.declarations.forEachOwn(function(id, decl){
-		t.locals.push(id);
-	});
-	t.resolved = true;
-	t.root = root;
-	return root;
+
+	var locals = [];
+	t.declarations.forEachOwn(function(id, decl){ locals.push(id) });
+	postDeclarations.forEachOwn(function(id, decl){ locals.push(id) });
+
+	return cache[t._N] = {
+		avaliables: avaliables,
+		locals: locals,
+		uses: uses,
+		root: root
+	};
 }
 Scope.prototype.castName = function(name){
-	return 's' + this.N + '_' + escapeId(name)
+	return 's' + this._N + '_' + escapeId(name)
 }
 Scope.prototype.castTempName = function(name){
-	return '_s' + this.N + '_' + escapeId(name)
+	return '_s' + this._N + '_' + escapeId(name)
 }
 Scope.prototype.inspect = function(){ return "[scope#" + this._N + "]" }
 Scope.prototype.newt = function(fn){
@@ -88,12 +103,12 @@ Scope.prototype.newt = function(fn){
 
 exports.Declaration = Declaration;
 exports.Scope = Scope;
-exports.resolveIdentifier = function(id, scope){
-	scope.resolve();
-	return scope.uses.get(id).belongs.castName(id);
+exports.resolveIdentifier = function(id, scope, cache){
+	var match = scope.resolve(cache);
+	return match.uses.get(id).belongs.castName(id);
 }
-exports.resolveTemp = function(id, scope){
-	scope.resolve();
+exports.resolveTemp = function(id, scope, cache){
+	scope.resolve(cache);
 	return scope.castTempName(id);
 }
 exports.escapeId = escapeId;
