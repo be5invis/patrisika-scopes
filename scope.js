@@ -10,6 +10,10 @@ Declaration.prototype.toString = function(){
 }
 
 var _N = 0;
+var familyNumerings = {
+	's' : 0,
+	'r' : 0
+}
 var Scope = function(parent, semiparent){
 	this.parent = parent;
 	this.semiparent = semiparent;
@@ -26,7 +30,12 @@ var Scope = function(parent, semiparent){
 	this.locals = [];
 	this.resolved = false;
 	this.temps = [];
-	this._N = (_N++);
+	this._N = (_N)++;
+
+	this.family = (parent ? parent.pFamily : semiparent ? semiparent.pFamily : 's') || 's';
+	this.pFamily = this.family;
+	if(!familyNumerings[this.family]) familyNumerings[this.family] = 0;
+	this.N = (familyNumerings[this.family]++)
 }
 Scope.prototype.use = function(name) {
   	this.uses.put(name, null);
@@ -91,10 +100,10 @@ Scope.prototype.resolve = function(cache){
 	};
 }
 Scope.prototype.castName = function(name){
-	return 's' + this._N + '_' + escapeId(name)
+	return this.family + this.N + '_' + escapeId(name)
 }
 Scope.prototype.castTempName = function(name){
-	return '_s' + this._N + '_' + escapeId(name)
+	return '_' + this.family + this.N + '_' + escapeId(name)
 }
 Scope.prototype.inspect = function(){ return "[scope#" + this._N + "]" }
 Scope.prototype.newt = function(fn){
