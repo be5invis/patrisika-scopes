@@ -58,18 +58,21 @@ Scope.prototype.resolve = function(cache){
 	var avaliables = new Hash();
 	var postDeclarations = new Hash();
 
+
+	if(t.semiparent) {
+		var mSemiParent = t.semiparent.resolve(cache);
+		var sroot = mSemiParent.root;
+		mSemiParent.avaliables.forEachOwn(function(id, decl){
+			avaliables.put(id, decl)
+		});
+	};
+
+	// t.parent has a higher priority
 	if(t.parent) {
 		var mParent = t.parent.resolve(cache);
 		var proot = mParent.root;
 		if(proot) root = proot;
 		mParent.avaliables.forEachOwn(function(id, decl){
-			avaliables.put(id, decl)
-		});
-	};
-	if(t.semiparent) {
-		var mSemiParent = t.semiparent.resolve(cache);
-		var sroot = mSemiParent.root;
-		mSemiParent.avaliables.forEachOwn(function(id, decl){
 			avaliables.put(id, decl)
 		});
 	};
@@ -92,11 +95,18 @@ Scope.prototype.resolve = function(cache){
 	t.declarations.forEachOwn(function(id, decl){ locals.push(id) });
 	postDeclarations.forEachOwn(function(id, decl){ locals.push(id) });
 
+	if(t.hanging) {
+		th = t.semiparent || t.parent;
+		while(th.hanging) th = th.semiparent || t.parent;
+		cache[th._N].hangingSubscopes.push(t);
+	}
+
 	return cache[t._N] = {
 		avaliables: avaliables,
 		locals: locals,
 		uses: uses,
-		root: root
+		root: root,
+		hangingSubscopes: []
 	};
 }
 Scope.prototype.castName = function(name){
