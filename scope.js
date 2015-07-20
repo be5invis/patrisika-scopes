@@ -20,6 +20,7 @@ var Scope = function(parent, semiparent){
 	this.declarations = new Hash();
 	this.avaliables = new Hash();
 	this.uses = new Hash();
+	this.firstUse = new Hash();
 
 	if(this.parent && this.parent.macros){
 		this.macros = Object.create(parent.macros)
@@ -38,9 +39,12 @@ var Scope = function(parent, semiparent){
 	this.N = (familyNumerings[this.family]++)
 }
 Scope.prototype.use = function(name) {
-  	this.uses.put(name, null);
-  	return ['.id', name, this];
-//	return new Reference(this, name)
+	var node = ['.id', name, this]
+	this.uses.put(name, null);
+	if(!this.firstUse.has(name)) {
+		this.firstUse.put(name, node)
+	}
+	return node;
 }
 Scope.prototype.declare = function(name, isParameter) {
 	if(typeof name !== 'string') debugger;
@@ -48,7 +52,7 @@ Scope.prototype.declare = function(name, isParameter) {
 	this.declarations.put(name, decl);
 	return decl;
 }
-Scope.prototype.resolve = function(cache){
+Scope.prototype.resolve = function(cache, strictQ){
 	if(cache[this._N]) return cache[this._N];
 
 	var t = this;
@@ -60,7 +64,7 @@ Scope.prototype.resolve = function(cache){
 
 
 	if(t.semiparent) {
-		var mSemiParent = t.semiparent.resolve(cache);
+		var mSemiParent = t.semiparent.resolve(cache, strictQ);
 		var sroot = mSemiParent.root;
 		mSemiParent.avaliables.forEachOwn(function(id, decl){
 			avaliables.put(id, decl)
@@ -69,7 +73,7 @@ Scope.prototype.resolve = function(cache){
 
 	// t.parent has a higher priority
 	if(t.parent) {
-		var mParent = t.parent.resolve(cache);
+		var mParent = t.parent.resolve(cache, strictQ);
 		var proot = mParent.root;
 		if(proot) root = proot;
 		mParent.avaliables.forEachOwn(function(id, decl){
@@ -83,7 +87,14 @@ Scope.prototype.resolve = function(cache){
 	});
 
 	var uses = t.uses.mapOwn(function(id, ref){
-		if(!avaliables.has(id)){
+		if(!avaliables.has(id)) {
+			if(strictQ) {
+				console.log(id, ref)
+				var e = new Error();
+				e.reason = e.message = "Undeclared variable " + id;
+				e.relatedForm = t.firstUse.get(id);
+				throw e;
+			}
 			var decl = new Declaration(id, false, t)
 			postDeclarations.put(id, decl);
 			avaliables.put(id, decl)
@@ -122,8 +133,8 @@ Scope.prototype.newt = function(fn){
 
 exports.Declaration = Declaration;
 exports.Scope = Scope;
-exports.resolveIdentifier = function(id, scope, cache){
-	var match = scope.resolve(cache);
+exports.resolveIdentifier = function(id, scope, cache, strictQ){
+	var match = scope.resolve(cache, strictQ);
 	return match.uses.get(id).belongs.castName(id);
 }
 exports.resolveTemp = function(id, scope, cache){
