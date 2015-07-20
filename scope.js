@@ -52,7 +52,7 @@ Scope.prototype.declare = function(name, isParameter) {
 	this.declarations.put(name, decl);
 	return decl;
 }
-Scope.prototype.resolve = function(cache, strictQ){
+Scope.prototype.resolve = function(cache, strictQ) {
 	if(cache[this._N]) return cache[this._N];
 
 	var t = this;
@@ -89,7 +89,6 @@ Scope.prototype.resolve = function(cache, strictQ){
 	var uses = t.uses.mapOwn(function(id, ref){
 		if(!avaliables.has(id)) {
 			if(strictQ) {
-				console.log(id, ref)
 				var e = new Error();
 				e.reason = e.message = "Undeclared variable " + id;
 				e.relatedForm = t.firstUse.get(id);
@@ -137,8 +136,8 @@ exports.resolveIdentifier = function(id, scope, cache, strictQ){
 	var match = scope.resolve(cache, strictQ);
 	return match.uses.get(id).belongs.castName(id);
 }
-exports.resolveTemp = function(id, scope, cache){
-	scope.resolve(cache);
+exports.resolveTemp = function(id, scope, cache, strictQ){
+	scope.resolve(cache, strictQ);
 	return scope.castTempName(id);
 }
 exports.escapeId = escapeId;
