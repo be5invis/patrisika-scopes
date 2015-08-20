@@ -52,7 +52,7 @@ Scope.prototype.declare = function(name, isParameter) {
 	this.declarations.put(name, decl);
 	return decl;
 }
-Scope.prototype.resolve = function(cache, strictQ) {
+Scope.prototype.resolve = function(cache) {
 	if(cache[this._N]) return cache[this._N];
 
 	var t = this;
@@ -64,7 +64,7 @@ Scope.prototype.resolve = function(cache, strictQ) {
 
 
 	if(t.semiparent) {
-		var mSemiParent = t.semiparent.resolve(cache, strictQ);
+		var mSemiParent = t.semiparent.resolve(cache);
 		var sroot = mSemiParent.root;
 		mSemiParent.avaliables.forEachOwn(function(id, decl){
 			avaliables.put(id, decl)
@@ -73,7 +73,7 @@ Scope.prototype.resolve = function(cache, strictQ) {
 
 	// t.parent has a higher priority
 	if(t.parent) {
-		var mParent = t.parent.resolve(cache, strictQ);
+		var mParent = t.parent.resolve(cache);
 		var proot = mParent.root;
 		if(proot) root = proot;
 		mParent.avaliables.forEachOwn(function(id, decl){
@@ -88,15 +88,12 @@ Scope.prototype.resolve = function(cache, strictQ) {
 
 	var uses = t.uses.mapOwn(function(id, ref){
 		if(!avaliables.has(id)) {
-			if(strictQ) {
-				var e = new Error();
-				e.reason = e.message = "Undeclared variable " + id;
-				e.relatedForm = t.firstUse.get(id);
-				throw e;
-			}
 			var decl = new Declaration(id, false, t)
 			postDeclarations.put(id, decl);
-			avaliables.put(id, decl)
+			avaliables.put(id, decl);
+			if(!cache.undeclareds) cache.undeclareds = new Hash;
+			if(!cache.undeclareds.has(id)) cache.undeclareds.put(id, []);
+			cache.undeclareds.get(id).push(decl);
 		};
 		return avaliables.get(id);
 	});
@@ -132,12 +129,13 @@ Scope.prototype.newt = function(fn){
 
 exports.Declaration = Declaration;
 exports.Scope = Scope;
-exports.resolveIdentifier = function(id, scope, cache, strictQ){
-	var match = scope.resolve(cache, strictQ);
-	return match.uses.get(id).belongs.castName(id);
+exports.resolveIdentifier = function(id, scope, cache){
+	var match = scope.resolve(cache);
+	return match.uses.get(id);
+	//return match.uses.get(id).belongs.castName(id);
 }
-exports.resolveTemp = function(id, scope, cache, strictQ){
-	scope.resolve(cache, strictQ);
+exports.resolveTemp = function(id, scope, cache){
+	scope.resolve(cache);
 	return scope.castTempName(id);
 }
 exports.escapeId = escapeId;
