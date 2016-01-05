@@ -22,10 +22,15 @@ var Scope = function(parent, semiparent){
 	this.uses = new Hash();
 	this.firstUse = new Hash();
 
-	if(this.parent && this.parent.macros){
+	if(this.parent && this.parent.macros) {
 		this.macros = Object.create(parent.macros)
 	} else {
 		this.macros = new Hash()
+	}
+	if(this.parent && this.parent.operatorInfo) {
+		this.operatorInfo = Object.create(parent.operatorInfo)
+	} else {
+		this.operatorInfo = new Hash()
 	}
 
 	this.locals = [];
