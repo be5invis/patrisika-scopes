@@ -32,6 +32,11 @@ var Scope = function(parent, semiparent){
 	} else {
 		this.operatorInfo = new Hash()
 	}
+	if(this.parent && this.parent.options) {
+		this.options = Object.create(this.parent.options)
+	} else {
+		this.options = {}
+	}
 
 	this.locals = [];
 	this.resolved = false;
@@ -41,7 +46,7 @@ var Scope = function(parent, semiparent){
 	this.family = (parent ? parent.pFamily : semiparent ? semiparent.pFamily : 's') || 's';
 	this.pFamily = this.family;
 	if(!familyNumerings[this.family]) familyNumerings[this.family] = 0;
-	this.N = (familyNumerings[this.family]++)
+	this.N = (familyNumerings[this.family]++);
 }
 Scope.prototype.use = function(name) {
 	var node = ['.id', name, this]
