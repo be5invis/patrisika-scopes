@@ -1,20 +1,20 @@
 var Hash = require('./hash').Hash;
 var escapeId = require('./castname').escapeId;
-var Declaration = function(name, isParameter, belongs){
+var Declaration = function(name, isParameter, belongs) {
 	this.name = name;
 	this.isParameter = isParameter;
 	this.belongs = belongs
 }
-Declaration.prototype.toString = function(){
+Declaration.prototype.toString = function() {
 	return this.name;
 }
 
 var _N = 0;
 var familyNumerings = {
-	's' : 0,
-	'r' : 0
+	's': 0,
+	'r': 0
 }
-var Scope = function(parent, semiparent){
+var Scope = function(parent, semiparent) {
 	this.parent = parent;
 	this.semiparent = semiparent;
 	this.declarations = new Hash();
@@ -22,17 +22,17 @@ var Scope = function(parent, semiparent){
 	this.uses = new Hash();
 	this.firstUse = new Hash();
 
-	if(this.parent && this.parent.macros) {
+	if (this.parent && this.parent.macros) {
 		this.macros = Object.create(parent.macros)
 	} else {
 		this.macros = new Hash()
 	}
-	if(this.parent && this.parent.operatorInfo) {
+	if (this.parent && this.parent.operatorInfo) {
 		this.operatorInfo = Object.create(parent.operatorInfo)
 	} else {
 		this.operatorInfo = new Hash()
 	}
-	if(this.parent && this.parent.options) {
+	if (this.parent && this.parent.options) {
 		this.options = Object.create(this.parent.options)
 	} else {
 		this.options = {}
@@ -45,76 +45,76 @@ var Scope = function(parent, semiparent){
 
 	this.family = (parent ? parent.pFamily : semiparent ? semiparent.pFamily : 's') || 's';
 	this.pFamily = this.family;
-	if(!familyNumerings[this.family]) familyNumerings[this.family] = 0;
+	if (!familyNumerings[this.family]) familyNumerings[this.family] = 0;
 	this.N = (familyNumerings[this.family]++);
 }
 Scope.prototype.use = function(name) {
 	var node = ['.id', name, this]
 	this.uses.put(name, null);
-	if(!this.firstUse.has(name)) {
+	if (!this.firstUse.has(name)) {
 		this.firstUse.put(name, node)
 	}
 	return node;
 }
 Scope.prototype.declare = function(name, isParameter) {
-	if(typeof name !== 'string') debugger;
+	if (typeof name !== 'string') debugger;
 	var decl = new Declaration(name, isParameter, this)
 	this.declarations.put(name, decl);
 	return decl;
 }
 Scope.prototype.resolve = function(cache) {
-	if(cache[this._N]) return cache[this._N];
+	if (cache[this._N]) return cache[this._N];
 
 	var t = this;
-	var root = { hangedScopes : 0 };
+	var root = { hangedScopes: 0 };
 	var _root = root;
 
 	var avaliables = new Hash();
 	var postDeclarations = new Hash();
 
 
-	if(t.semiparent) {
+	if (t.semiparent) {
 		var mSemiParent = t.semiparent.resolve(cache);
 		var sroot = mSemiParent.root;
-		mSemiParent.avaliables.forEachOwn(function(id, decl){
+		mSemiParent.avaliables.forEachOwn(function(id, decl) {
 			avaliables.put(id, decl)
 		});
 	};
 
 	// t.parent has a higher priority
-	if(t.parent) {
+	if (t.parent) {
 		var mParent = t.parent.resolve(cache);
 		var proot = mParent.root;
-		if(proot) root = proot;
-		mParent.avaliables.forEachOwn(function(id, decl){
+		if (proot) root = proot;
+		mParent.avaliables.forEachOwn(function(id, decl) {
 			avaliables.put(id, decl)
 		});
 	};
-	if(root === _root) var N = root.hangedScopes = 0; else var N = root.hangedScopes += 1;
+	if (root === _root) var N = root.hangedScopes = 0; else var N = root.hangedScopes += 1;
 
-	t.declarations.forEachOwn(function(id, decl){
+	t.declarations.forEachOwn(function(id, decl) {
 		avaliables.put(id, decl)
 	});
 
-	var uses = t.uses.mapOwn(function(id, ref){
-		if(!avaliables.has(id)) {
+	var uses = t.uses.mapOwn(function(id, ref) {
+		if (!avaliables.has(id)) {
 			var decl = new Declaration(id, false, t)
 			postDeclarations.put(id, decl);
 			avaliables.put(id, decl);
-			if(!cache.undeclareds) cache.undeclareds = new Hash;
-			if(!cache.undeclareds.has(id)) cache.undeclareds.put(id, []);
+			if (!cache.undeclareds) cache.undeclareds = new Hash;
+			if (!cache.undeclareds.has(id)) cache.undeclareds.put(id, []);
 			cache.undeclareds.get(id).push(decl);
 		};
 		return avaliables.get(id);
 	});
 
 	var locals = [];
-	t.declarations.forEachOwn(function(id, decl){ locals.push(id) });
-	postDeclarations.forEachOwn(function(id, decl){ locals.push(id) });
+	t.declarations.forEachOwn(function(id, decl) { locals.push(id) });
+	postDeclarations.forEachOwn(function(id, decl) { locals.push(id) });
 
-	if(t.hanging) {
+	if (t.hanging) {
 		th = t.semiparent || t.parent;
-		while(th.hanging) th = th.semiparent || t.parent;
+		while (th.hanging) th = th.semiparent || t.parent;
 		cache[th._N].hangingSubscopes.push(t);
 	}
 
@@ -126,25 +126,25 @@ Scope.prototype.resolve = function(cache) {
 		hangingSubscopes: []
 	};
 }
-Scope.prototype.castName = function(name){
+Scope.prototype.castName = function(name) {
 	return this.family + this.N + '_' + escapeId(name)
 }
-Scope.prototype.castTempName = function(name){
+Scope.prototype.castTempName = function(name) {
 	return '_' + this.family + this.N + '_' + escapeId(name)
 }
-Scope.prototype.inspect = function(){ return "[scope#" + this._N + "]" }
-Scope.prototype.newt = function(fn){
+Scope.prototype.inspect = function() { return "[scope#" + this._N + "]" }
+Scope.prototype.newt = function(fn) {
 	return ['.t', (this.temps[this.temps.length] = (fn || 't') + this.temps.length), this]
 }
 
 exports.Declaration = Declaration;
 exports.Scope = Scope;
-exports.resolveIdentifier = function(id, scope, cache){
+exports.resolveIdentifier = function(id, scope, cache) {
 	var match = scope.resolve(cache);
 	return match.uses.get(id);
 	//return match.uses.get(id).belongs.castName(id);
 }
-exports.resolveTemp = function(id, scope, cache){
+exports.resolveTemp = function(id, scope, cache) {
 	scope.resolve(cache);
 	return scope.castTempName(id);
 }
