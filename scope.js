@@ -41,7 +41,8 @@ var Scope = function(parent, semiparent) {
 	this.locals = [];
 	this.resolved = false;
 	this.temps = [];
-	this._N = (_N)++;
+	this._N = _N;
+	_N++;
 
 	this.family = (parent ? parent.pFamily : semiparent ? semiparent.pFamily : 's') || 's';
 	this.pFamily = this.family;
