@@ -37,6 +37,16 @@ var Scope = function(parent, semiparent) {
 	} else {
 		this.options = {}
 	}
+	if(this.parent && this.parent.isTempForImportExport) {
+		this.imports = this.parent.imports
+		this.exports = this.parent.exports
+		this.importExportScope = this.parent.importExportScope
+	} else {
+		this.imports = new Hash()
+		this.exports = new Hash()
+		this.importExportScope = this
+	}
+	this.isTempForImportExport = new Hash();
 
 	this.locals = [];
 	this.resolved = false;
@@ -136,6 +146,26 @@ Scope.prototype.castTempName = function(name) {
 Scope.prototype.inspect = function() { return "[scope#" + this._N + "]" }
 Scope.prototype.newt = function(fn) {
 	return ['.t', (this.temps[this.temps.length] = (fn || 't') + this.temps.length), this]
+}
+Scope.prototype.addImport = function(source) {
+	if(this.imports.has(source)){
+		return this.imports.get(source)
+	} else {
+		var t = this.importExportScope.newt();
+		this.importExportScope.isTempForImportExport.put(t[1], true);
+		this.imports.put(source, t)
+		return t
+	}
+}
+Scope.prototype.addExport = function(source) {
+	if(this.exports.has(source)){
+		return this.exports.get(source)
+	} else {
+		var t = this.importExportScope.newt();
+		this.importExportScope.isTempForImportExport.put(t[1], true);
+		this.exports.put(source, t)
+		return t
+	}
 }
 
 exports.Declaration = Declaration;
